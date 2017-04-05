@@ -109,6 +109,8 @@ for t = 0:time_step:max_time
                 end
             end
         end
+        
+        % TODO: randomly generate new cars
     end
 
 end
