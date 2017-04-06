@@ -19,12 +19,14 @@ street = zeros(num_lanes,street_length);
 
 %Define Locations of Stoplights
 
-stoplights = [ 33 67; 0 0.5; 2 2; 1 1; 0 0];
+stoplights = [1 33 67; 0 0 0.5; 1 2 2; 0 1 1; 0 0 0; p p/2 p/2; 0 0 0];
 %stoplights(1,:) contains location of each SL
 %stoplights(2,:) contains offset time of each SL
 %stoplights(3,:) contains length of green light in mins
 %stoplights(4,:) contains length of red light in mins
 %stoplights(5,:) contains state of light (0 for green, 1 for red)
+%stoplights(6,:) contains new car parameter
+%stoplights(7,:) contains cars in queue
 
 %Define Matrix for Driver Data
 driver_data = [];
@@ -33,93 +35,88 @@ driver_data = [];
 %driver_data(3,:) contains entry time of each car
 %driver_data(4,:) contains exit time of each car
 %driver_data(5,:) contains entry distance of each car
+%driver_data(6,:) contais queue position (0 is on road)
+
+
 for t = 1:end_time
     stoplights = SL_update(stoplights,t,dt);
+    
+    % TODO: run through queues generating new cars
+    
     m = num_lanes;
     n = street_length;
     G1 = zeros(m,n);
-    if isempty(car_vec) %initial car inflow
-        G1(:,1) = floor((p/num_lanes)*ceil(1/(p/num_lanes)*rand(m,1)));
-        for ii = 1:m
+    
+    for kk = car_vec
+        ii = driver_data(1,kk);
+        jj = driver_data(2,kk);
+        if jj < n
+            if any(jj==stoplights(1,:))
+              ss = find(jj==stoplights(1,:));
+              % if at fist "stoplight"
+              if stoplights(5,ss)==1
+                  G1(ii,jj) = 1;
+                  driver_data(2,kk) = jj;
+                  driver_data(4,kk) = t;
+              else
+                  G1(ii,jj+1) = 1;
+                  driver_data(2,kk) = jj+1;
+                  driver_data(4,kk) = t;
+              end
+            elseif street(ii,jj+1) == 0
+                G1(ii,jj+1) = 1;
+                driver_data(2,kk) = jj+1;
+                driver_data(4,kk) = t;
+            else
+                if m > 1
+                    if ii == 1 %if in left lane
+                        if street(ii+1,jj) == 0 && street(ii+1,jj+1) == 0
+                            G1(ii+1,jj+1) = 1;
+                            driver_data(1,kk) = ii+1;
+                            driver_data(2,kk) = jj+1;
+                            driver_data(4,kk) = t;
+                        end
+                    elseif ii == m %if in right lane
+                        if street(ii-1,jj) == 0 && street(ii-1,jj+1) == 0
+                            G1(ii-1,jj+1) = 1;
+                            driver_data(1,kk) = ii-1;
+                            driver_data(2,kk) = jj+1;
+                            driver_data(4,kk) = t;
+                        end
+                    else   %if lanes on either side
+                        if street(ii+1,jj) == 0 && street(ii+1,jj+1) == 0
+                            G1(ii+1,jj+1) = 1;
+                            driver_data(1,kk) = ii+1;
+                            driver_data(2,kk) = jj+1;
+                            driver_data(4,kk) = t;
+                        elseif street(ii-1,jj) == 0 && street(ii-1,jj+1) == 0
+                            G1(ii-1,jj+1) = 1;
+                            driver_data(1,kk) = ii-1;
+                            driver_data(2,kk) = jj+1;
+                            driver_data(4,kk) = t;
+                        else
+                            G1(ii,jj) = 1;
+                        end
+                    end
+                else
+                    G1(ii,jj) = 1;
+                    driver_data(4,kk) = t;
+                end    
+            end
+        elseif jj == n
+            G1(ii,jj) = 0;
+            driver_data(2,kk) = jj+1;
+            driver_data(4,kk) = t;
+        end
+    end
+    for ii = 1:m %additional entry of new cars into street
+        if street(ii,1) == 0
+            G1(ii,1) = floor((p/num_lanes)*ceil(1/(p/num_lanes)*rand(1)));
             if G1(ii,1) == 1
                 ind = ind+1;
                 car_vec = [car_vec ind];
                 car_data = [ii;1;t;t;1];
                 driver_data = [driver_data car_data];
-            end
-        end
-        
-    else        %with cars on the road
-        for kk = car_vec
-            ii = driver_data(1,kk);
-            jj = driver_data(2,kk);
-            if jj < n
-                if any(jj==stoplights(1,:))
-                  ss = find(jj==stoplights(1,:));
-                  if stoplights(5,ss)==1
-                      G1(ii,jj) = 1;
-                      driver_data(2,kk) = jj;
-                      driver_data(4,kk) = t;
-                  else
-                      G1(ii,jj+1) = 1;
-                      driver_data(2,kk) = jj+1;
-                      driver_data(4,kk) = t;
-                  end
-                elseif street(ii,jj+1) == 0
-                    G1(ii,jj+1) = 1;
-                    driver_data(2,kk) = jj+1;
-                    driver_data(4,kk) = t;
-                else
-                    if m > 1
-                        if ii == 1 %if in left lane
-                            if street(ii+1,jj) == 0 && street(ii+1,jj+1) == 0
-                                G1(ii+1,jj+1) = 1;
-                                driver_data(1,kk) = ii+1;
-                                driver_data(2,kk) = jj+1;
-                                driver_data(4,kk) = t;
-                            end
-                        elseif ii == m %if in right lane
-                            if street(ii-1,jj) == 0 && street(ii-1,jj+1) == 0
-                                G1(ii-1,jj+1) = 1;
-                                driver_data(1,kk) = ii-1;
-                                driver_data(2,kk) = jj+1;
-                                driver_data(4,kk) = t;
-                            end
-                        else   %if lanes on either side
-                            if street(ii+1,jj) == 0 && street(ii+1,jj+1) == 0
-                                G1(ii+1,jj+1) = 1;
-                                driver_data(1,kk) = ii+1;
-                                driver_data(2,kk) = jj+1;
-                                driver_data(4,kk) = t;
-                            elseif street(ii-1,jj) == 0 && street(ii-1,jj+1) == 0
-                                G1(ii-1,jj+1) = 1;
-                                driver_data(1,kk) = ii-1;
-                                driver_data(2,kk) = jj+1;
-                                driver_data(4,kk) = t;
-                            else
-                                G1(ii,jj) = 1;
-                            end
-                        end
-                    else
-                        G1(ii,jj) = 1;
-                        driver_data(4,kk) = t;
-                    end    
-                end
-            elseif jj == n
-                G1(ii,jj) = 0;
-                driver_data(2,kk) = jj+1;
-                driver_data(4,kk) = t;
-            end
-        end
-        for ii = 1:m %additional entry of new cars into street
-            if street(ii,1) == 0
-                G1(ii,1) = floor((p/num_lanes)*ceil(1/(p/num_lanes)*rand(1)));
-                if G1(ii,1) == 1
-                    ind = ind+1;
-                    car_vec = [car_vec ind];
-                    car_data = [ii;1;t;t;1];
-                    driver_data = [driver_data car_data];
-                end
             end
         end
     end
