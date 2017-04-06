@@ -42,6 +42,12 @@ for t = 1:end_time
     stoplights = SL_update(stoplights,t,dt);
     
     % TODO: run through queues generating new cars
+    % for stoplights
+    %   decide if new car
+    %   increment size queue
+    %   make new car in car vec with queue position equal to queue size
+    %   set car distance to light distance
+    %   set lane to 0 to signal queue
     
     m = num_lanes;
     n = street_length;
@@ -53,15 +59,26 @@ for t = 1:end_time
         if jj < n
             if any(jj==stoplights(1,:))
               ss = find(jj==stoplights(1,:));
-              % if at fist "stoplight"
-              if stoplights(5,ss)==1
-                  G1(ii,jj) = 1;
-                  driver_data(2,kk) = jj;
-                  driver_data(4,kk) = t;
-              else
-                  G1(ii,jj+1) = 1;
-                  driver_data(2,kk) = jj+1;
-                  driver_data(4,kk) = t;
+              if driver_data(1, kk) > 0
+                  if stoplights(5,ss)==1
+                      G1(ii,jj) = 1;
+                      driver_data(2,kk) = jj;
+                      driver_data(4,kk) = t;
+                  else
+                      G1(ii,jj+1) = 1;
+                      driver_data(2,kk) = jj+1;
+                      driver_data(4,kk) = t;
+                  end
+              elseif driver_data(1,kk) == 0
+                  % TODO: logic for turns 
+                  % check light
+                  % if green 
+                  %   if entry point
+                  %     entrance logic
+                  %   else
+                  %     turn logic
+                  % else
+                  %   turn on red logic
               end
             elseif street(ii,jj+1) == 0
                 G1(ii,jj+1) = 1;
