@@ -35,50 +35,111 @@ driver_data = [];
 %driver_data(3,:) contains entry time of each car
 %driver_data(4,:) contains exit time of each car
 %driver_data(5,:) contains entry distance of each car
-%driver_data(6,:) contais queue position (0 is on road)
+%driver_data(6,:) contains queue position (0 is on road)
 
 
 for t = 1:end_time
     stoplights = SL_update(stoplights,t,dt);
     
-    % TODO: run through queues generating new cars
-    % for stoplights
-    %   decide if new car
-    %   increment size queue
-    %   make new car in car vec with queue position equal to queue size
-    %   set car distance to light distance
-    %   set lane to 0 to signal queue
+    % run through queues generating new cars
+    for entry = 1:size(stoplights,2)
+        %   decide if new car
+        prob = stoplights(6, entry);
+        new_car = floor((prob/num_lanes)*ceil(1/(prob/num_lanes)*rand(1)));
+    
+        if new_car
+            %   increment size queue
+            queue_size = stoplights(6,entry) + 1;
+            stoplights(6,entry) = queue_size;
+            light_dist = stoplights(1,entry);
+            
+            %   make new car in car vec with light's dist, queue pos, and lane 0 
+            ind = ind+1; 
+            car_vec = [car_vec ind];
+            car_data = [ 0; light_dist; t; t; light_dist; queue_size ]; 
+            driver_data = [driver_data car_data];
+            
+        end
+    end
     
     m = num_lanes;
     n = street_length;
     G1 = zeros(m,n);
+    queue_exit = zeros(size(stoplights,2), 1);
     
     for kk = car_vec
         ii = driver_data(1,kk);
         jj = driver_data(2,kk);
         if jj < n
+            % if approaching a light
             if any(jj==stoplights(1,:))
               ss = find(jj==stoplights(1,:));
-              if driver_data(1, kk) > 0
+              
+              % driver on road
+              if ii > 0
+                  assert(driver_data(6, kk) == 0);
+                  
+                  % red light
                   if stoplights(5,ss)==1
+                      assert(G1(ii,jj) == 0);
                       G1(ii,jj) = 1;
                       driver_data(2,kk) = jj;
                       driver_data(4,kk) = t;
+                  % green light
                   else
+                      % no switch lanes at light?
+                      assert(G1(ii,jj+1) == 0);
                       G1(ii,jj+1) = 1;
                       driver_data(2,kk) = jj+1;
                       driver_data(4,kk) = t;
                   end
-              elseif driver_data(1,kk) == 0
-                  % TODO: logic for turns 
-                  % check light
-                  % if green 
-                  %   if entry point
-                  %     entrance logic
-                  %   else
-                  %     turn logic
-                  % else
-                  %   turn on red logic
+              % driver in queue
+              elseif ii == 0
+                  assert(driver_data(6, kk) > 0);
+                  
+                  % driver at front of queue
+                  if driver_data(6, kk) == 1
+                      % initial entry point
+                      if jj == 1
+                          assert(stoplights(5,1) == 0);
+                          
+                          for lane = 1:m
+                              if street(lane, 1) == 0
+                                  assert(G1(lane,1) == 0);
+                                  G1(lane, 1) = 1;
+                                  driver_data(1,kk) = lane;
+                                  driver_data(4,kk) = t;
+                                  queue_exit(1) = 1;
+                                  break;
+                              end
+                          end
+                      % right turn onto intersection
+                      else
+                          ss = find(jj==stoplights(1,:));
+                          
+                          % green light
+                          if stoplights(5, ss) == 0
+                              % right lane empty
+                              if street(m, jj) == 0
+                                  assert(G1(m,jj) == 0);
+                                  G1(m, jj) = 1;
+                                  driver_data(1,kk) = m;
+                                  driver_data(4,kk) = t;
+                                  queue_exit(ss) = 1;                                  
+                              end
+                          % red light
+                          else
+                              % right lane and preceding spot empty
+                              if street(m, jj) == 0 && street(m, jj-1) == 0
+                                  assert(G1(m,jj) == 0);
+                                  G1(m, jj) = 1;
+                                  driver_data(1,kk) = m;
+                                  driver_data(4,kk) = t;
+                                  queue_exit(ss) = 1;                                  
+                              end                              
+                          end
+                      end
+                  end
               end
             elseif street(ii,jj+1) == 0
                 G1(ii,jj+1) = 1;
@@ -126,17 +187,31 @@ for t = 1:end_time
             driver_data(4,kk) = t;
         end
     end
-    for ii = 1:m %additional entry of new cars into street
-        if street(ii,1) == 0
-            G1(ii,1) = floor((p/num_lanes)*ceil(1/(p/num_lanes)*rand(1)));
-            if G1(ii,1) == 1
-                ind = ind+1;
-                car_vec = [car_vec ind];
-                car_data = [ii;1;t;t;1];
-                driver_data = [driver_data car_data];
+    
+    % move up each car in queue if leader left
+    for kk = car_vec
+        jj = driver_data(2, kk);
+        queued = (driver_data(6 ,kk) > 0);
+        
+        if any(jj==stoplights(1,:)) && queued
+            ss = find(jj==stoplights(1,:));
+            if queue_exit(ss)
+                driver_data(6, kk) = driver_data(6, kk);
             end
         end
     end
+    
+%     for ii = 1:m %additional entry of new cars into street
+%         if street(ii,1) == 0
+%             G1(ii,1) = floor((p/num_lanes)*ceil(1/(p/num_lanes)*rand(1)));
+%             if G1(ii,1) == 1
+%                 ind = ind+1;
+%                 car_vec = [car_vec ind];
+%                 car_data = [ii;1;t;t;1];
+%                 driver_data = [driver_data car_data];
+%             end
+%         end
+%     end
     street = G1;
 end
 
