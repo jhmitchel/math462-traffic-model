@@ -1,7 +1,7 @@
 clear all
 %Define parameters for analysis
 speed_limit = 45;
-p = 0.4; % probability of car entering road after timestep dt
+p = 0.1; % probability of car entering road after timestep dt
 num_mins = 30;
 num_lanes = 2;
 
@@ -49,8 +49,8 @@ for t = 1:end_time
     
         if new_car
             %   increment size queue
-            queue_size = stoplights(6,entry) + 1;
-            stoplights(6,entry) = queue_size;
+            queue_size = stoplights(7,entry) + 1;
+            stoplights(7,entry) = queue_size;
             light_dist = stoplights(1,entry);
             
             %   make new car in car vec with light's dist, queue pos, and lane 0 
@@ -86,7 +86,7 @@ for t = 1:end_time
                       driver_data(2,kk) = jj;
                       driver_data(4,kk) = t;
                   % green light
-                  else
+                  elseif street(ii, jj+1) == 0
                       % no switch lanes at light?
                       assert(G1(ii,jj+1) == 0);
                       G1(ii,jj+1) = 1;
@@ -192,12 +192,21 @@ for t = 1:end_time
     for kk = car_vec
         jj = driver_data(2, kk);
         queued = (driver_data(6 ,kk) > 0);
+        if sum(queue_exit) > 1
+            disp(queue_exit);
+        end
         
         if any(jj==stoplights(1,:)) && queued
             ss = find(jj==stoplights(1,:));
             if queue_exit(ss)
-                driver_data(6, kk) = driver_data(6, kk);
+                driver_data(6, kk) = driver_data(6, kk) - 1;
             end
+        end
+    end
+    
+    for light = 1:size(stoplights, 2)
+        if queue_exit(light)
+            stoplights(7, light) = stoplights(light) - 1;
         end
     end
     
@@ -214,9 +223,9 @@ for t = 1:end_time
 %     end
     street = G1;
 end
-
+disp(size(driver_data));
 %collect travel time data
-for jj = 1:length(driver_data)
+for jj = 1:size(driver_data, 2)
     drive_time = (driver_data(4,jj) - driver_data(3,jj))*dt;
     drive_dist = (driver_data(2,jj) - driver_data(5,jj))*15;
     ave_speed = drive_dist/drive_time; %ft/sec
