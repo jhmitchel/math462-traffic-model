@@ -118,22 +118,24 @@ for t = 1:end_time
                           ss = find(jj==stoplights(1,:));
                           
                           % green light
-                          if stoplights(5, ss) == 0
+                          if stoplights(5, ss) == 1
                               % right lane empty
-                              if street(m, jj) == 0
-                                  assert(G1(m,jj) == 0);
-                                  G1(m, jj) = 1;
+                              if street(m, jj+1) == 0
+                                  assert(G1(m,jj+1) == 0);
+                                  G1(m, jj+1) = 1;
                                   driver_data(1,kk) = m;
+                                  driver_data(2,kk) = jj + 1;
                                   driver_data(4,kk) = t;
                                   queue_exit(ss) = 1;                                  
                               end
                           % red light
                           else
                               % right lane and preceding spot empty
-                              if street(m, jj) == 0 && street(m, jj-1) == 0
-                                  assert(G1(m,jj) == 0);
-                                  G1(m, jj) = 1;
+                              if street(m, jj) == 0 && street(m, jj+1) == 0
+                                  assert(G1(m,jj+1) == 0);
+                                  G1(m, jj+1) = 1;
                                   driver_data(1,kk) = m;
+                                  driver_data(2,kk) = jj + 1;
                                   driver_data(4,kk) = t;
                                   queue_exit(ss) = 1;                                  
                               end                              
