@@ -19,7 +19,7 @@ street = zeros(num_lanes,street_length);
 
 %Define Locations of Stoplights
 
-stoplights = [1 33 67; 0 0 0.5; 1 2 2; 0 1 1; 0 0 0; p p/2 p/2; 0 0 0];
+stoplights = [0 33 67; 0 0 0.5; 1 2 2; 0 1 1; 0 0 0; p p/2 p/2; 0 0 0];
 %stoplights(1,:) contains location of each SL
 %stoplights(2,:) contains offset time of each SL
 %stoplights(3,:) contains length of green light in mins
@@ -40,7 +40,7 @@ driver_data = [];
 
 for t = 1:end_time
     stoplights = SL_update(stoplights,t,dt);
-    
+  
     % run through queues generating new cars
     for entry = 1:size(stoplights,2)
         %   decide if new car
@@ -85,13 +85,19 @@ for t = 1:end_time
                       G1(ii,jj) = 1;
                       driver_data(2,kk) = jj;
                       driver_data(4,kk) = t;
-                  % green light
-                  elseif street(ii, jj+1) == 0
-                      % no switch lanes at light?
-                      assert(G1(ii,jj+1) == 0);
-                      G1(ii,jj+1) = 1;
-                      driver_data(2,kk) = jj+1;
-                      driver_data(4,kk) = t;
+                  % green light and open
+                  else
+                      if street(ii, jj+1) == 0
+                          assert(G1(ii,jj+1) == 0);
+                          G1(ii,jj+1) = 1;
+                          driver_data(2,kk) = jj+1;
+                          driver_data(4,kk) = t;
+                      else
+                          % no switch lanes at light?
+                          assert(G1(ii,jj) == 0);
+                          G1(ii,jj) = 1;
+                          driver_data(4,kk) = t;
+                      end
                   end
               % driver in queue
               elseif ii == 0
@@ -100,7 +106,7 @@ for t = 1:end_time
                   % driver at front of queue
                   if driver_data(6, kk) == 1
                       % initial entry point
-                      if jj == 1
+                      if jj == 0
                           assert(stoplights(5,1) == 0);
                           
                           for lane = 1:m
@@ -108,7 +114,9 @@ for t = 1:end_time
                                   assert(G1(lane,1) == 0);
                                   G1(lane, 1) = 1;
                                   driver_data(1,kk) = lane;
+                                  driver_data(2,kk) = 1;
                                   driver_data(4,kk) = t;
+                                  assert(queue_exit(1) == 0);
                                   queue_exit(1) = 1;
                                   break;
                               end
@@ -126,6 +134,7 @@ for t = 1:end_time
                                   driver_data(1,kk) = m;
                                   driver_data(2,kk) = jj + 1;
                                   driver_data(4,kk) = t;
+                                  assert(queue_exit(ss) == 0);
                                   queue_exit(ss) = 1;                                  
                               end
                           % red light
@@ -137,10 +146,14 @@ for t = 1:end_time
                                   driver_data(1,kk) = m;
                                   driver_data(2,kk) = jj + 1;
                                   driver_data(4,kk) = t;
+                                  assert(queue_exit(ss) == 0);
                                   queue_exit(ss) = 1;                                  
                               end                              
                           end
                       end
+                  else
+                      assert(driver_data(1, kk) == 0);
+                      driver_data(4, kk) = t;
                   end
               end
             elseif street(ii,jj+1) == 0
@@ -155,12 +168,19 @@ for t = 1:end_time
                             driver_data(1,kk) = ii+1;
                             driver_data(2,kk) = jj+1;
                             driver_data(4,kk) = t;
+                        else
+                            G1(ii,jj) = 1;
+                            driver_data(4,kk) = t;
                         end
                     elseif ii == m %if in right lane
                         if street(ii-1,jj) == 0 && street(ii-1,jj+1) == 0
                             G1(ii-1,jj+1) = 1;
+                            assert(ii-1 > 0);
                             driver_data(1,kk) = ii-1;
                             driver_data(2,kk) = jj+1;
+                            driver_data(4,kk) = t;
+                        else
+                            G1(ii,jj) = 1;
                             driver_data(4,kk) = t;
                         end
                     else   %if lanes on either side
@@ -171,11 +191,13 @@ for t = 1:end_time
                             driver_data(4,kk) = t;
                         elseif street(ii-1,jj) == 0 && street(ii-1,jj+1) == 0
                             G1(ii-1,jj+1) = 1;
+                            assert(ii-1 > 0);
                             driver_data(1,kk) = ii-1;
                             driver_data(2,kk) = jj+1;
                             driver_data(4,kk) = t;
                         else
                             G1(ii,jj) = 1;
+                            driver_data(4, kk) = t;
                         end
                     end
                 else
@@ -194,23 +216,37 @@ for t = 1:end_time
     for kk = car_vec
         jj = driver_data(2, kk);
         queued = (driver_data(6 ,kk) > 0);
-        if sum(queue_exit) > 1
-            disp(queue_exit);
-        end
         
-        if any(jj==stoplights(1,:)) && queued
-            ss = find(jj==stoplights(1,:));
+        if driver_data(6 ,kk) == 1 && any((jj-1) == stoplights(1,:))
+            ss = find((jj-1) == stoplights(1,:));
             if queue_exit(ss)
                 driver_data(6, kk) = driver_data(6, kk) - 1;
+                if (driver_data(6,kk) == 0)
+                    assert(driver_data(1,kk) > 0);
+                end
             end
+        elseif driver_data(6 ,kk) > 1 && any(jj == stoplights(1,:))
+            ss = find(jj == stoplights(1,:));
+            if queue_exit(ss)
+                driver_data(6, kk) = driver_data(6, kk) - 1;
+                if (driver_data(6,kk) == 0)
+                    assert(driver_data(1,kk) > 0);
+                end
+            end
+        elseif driver_data(6,kk) == 0
+            ii = driver_data(1, kk);
+            assert(ii > 0);
+            assert(jj == n+1 || G1(ii, jj) == 1);
         end
     end
     
     for light = 1:size(stoplights, 2)
         if queue_exit(light)
-            stoplights(7, light) = stoplights(light) - 1;
+            stoplights(7, light) = stoplights(7,light) - 1;
         end
     end
+    
+   
     
 %     for ii = 1:m %additional entry of new cars into street
 %         if street(ii,1) == 0
@@ -224,6 +260,7 @@ for t = 1:end_time
 %         end
 %     end
     street = G1;
+    
 end
 disp(size(driver_data));
 %collect travel time data
