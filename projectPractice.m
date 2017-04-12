@@ -18,7 +18,7 @@ street_length = 100;
 street = zeros(num_lanes,street_length);
 
 %Define Locations of Stoplights
-stoplights = [0 33 67; 0 0 0.5; 1 2 2; 0 1 1; 0 0 0; 0.1 0.05 0.05; 0 0 0];
+stoplights = [0 33 67; 0 0 0.5; 1 2 2; 0 1 1; 0 0 0; 0.1 0.05 0.05; 0 0 0; 0 0 0];
 %stoplights(1,:) contains location of each SL
 %stoplights(2,:) contains offset time of each SL
 %stoplights(3,:) contains length of green light in mins
@@ -26,6 +26,7 @@ stoplights = [0 33 67; 0 0 0.5; 1 2 2; 0 1 1; 0 0 0; 0.1 0.05 0.05; 0 0 0];
 %stoplights(5,:) contains state of light (0 for green, 1 for red)
 %stoplights(6,:) contains new car parameter
 %stoplights(7,:) contains cars in queue
+%stoplights(7,:) contains time steps unchanged
 
 %Define Matrix for Driver Data
 driver_data = [];
@@ -40,8 +41,9 @@ lambda_dist = normpdf(((1:end_time) - (end_time/2)) / end_time, 0, 1);
 
 
 for t = 1:end_time
-    stoplights = SL_update(stoplights,t,dt);
-  
+    %stoplights = SL_update(stoplights,t,dt);
+    stoplights = SL_update_sensor(stoplights, street);
+    
     % run through queues generating new cars
     for entry = 1:size(stoplights,2)
         %   decide if new car
@@ -106,7 +108,7 @@ for t = 1:end_time
                   assert(driver_data(6, kk) > 0);
                   
                   % driver at front of queue
-                  if driver_data(6, kk) == 1
+                  if (driver_data(6, kk) == 1) && (driver_data(3,kk) < t)
                       % initial entry point
                       if jj == 0
                           assert(stoplights(5,1) == 0);
