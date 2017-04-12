@@ -18,8 +18,7 @@ street_length = 100;
 street = zeros(num_lanes,street_length);
 
 %Define Locations of Stoplights
-
-stoplights = [0 33 67; 0 0 0.5; 1 2 2; 0 1 1; 0 0 0; p p/2 p/2; 0 0 0];
+stoplights = [0 33 67; 0 0 0.5; 1 2 2; 0 1 1; 0 0 0; 0.1 0.05 0.05; 0 0 0];
 %stoplights(1,:) contains location of each SL
 %stoplights(2,:) contains offset time of each SL
 %stoplights(3,:) contains length of green light in mins
@@ -37,6 +36,8 @@ driver_data = [];
 %driver_data(5,:) contains entry distance of each car
 %driver_data(6,:) contains queue position (0 is on road)
 
+lambda_dist = normpdf(((1:end_time) - (end_time/2)) / end_time, 0, 1);
+
 
 for t = 1:end_time
     stoplights = SL_update(stoplights,t,dt);
@@ -44,10 +45,10 @@ for t = 1:end_time
     % run through queues generating new cars
     for entry = 1:size(stoplights,2)
         %   decide if new car
-        prob = stoplights(6, entry);
-        new_car = floor((prob/num_lanes)*ceil(1/(prob/num_lanes)*rand(1)));
+        light_popularity = stoplights(6, entry);
+        num_cars = poissrnd(light_popularity * lambda_dist(t));
     
-        if new_car
+        while num_cars > 0
             %   increment size queue
             queue_size = stoplights(7,entry) + 1;
             stoplights(7,entry) = queue_size;
@@ -59,6 +60,7 @@ for t = 1:end_time
             car_data = [ 0; light_dist; t; t; light_dist; queue_size ]; 
             driver_data = [driver_data car_data];
             
+            num_cars = num_cars - 1;            
         end
     end
     
