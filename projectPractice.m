@@ -1,9 +1,17 @@
 clear all
+tic
 %Define parameters for analysis
 speed_limit = 45;
 p = 0.1; % probability of car entering road after timestep dt
 num_mins = 240;
-num_lanes = 3;
+num_lanes = 2;
+
+spots_must_switch = 40;
+spots_try_switch = 150;
+
+prob_straight = 5/8;
+prob_left = 1/8;
+prob_right = 2/8;
 
 %Define vector of cars on street
 car_vec = [];
@@ -14,11 +22,18 @@ end_time = ceil(1/dt*60*num_mins); %how many time steps simulation will run for
 speed_vec = []; %vector of travel speeds for cars
 
 %Define Grid for Street
-street_length = 100;
+street_length = 1250;
 street = zeros(num_lanes,street_length);
 
 %Define Locations of Stoplights
-stoplights = [0 33 67; 0 0 0.5; 1 2 2; 0 1 1; 0 0 0; 0.1 0.05 0.05; 0 0 0; 0 0 0];
+stoplights = [0 70 140 175 210 315 490 525 735 770 910 980 1015 1040; 
+              0 0 0 0 0 0 0 0 0 0 0 0 0 0; 
+              1 2 2 2 2 2 2 2 2 2 2 2 2 2; 
+              0 1 1 1 1 1 1 1 1 1 1 1 1 1; 
+              0 0 0 0 0 0 0 0 0 0 0 0 0 0; 
+              0.1 0.0005 0.0005 0.0005 0.008 0.025 0.0005 0.0005 0.125 0.0005 0.0005 0.016 0.0005 0.0005; 
+              0 0 0 0 0 0 0 0 0 0 0 0 0 0];
+long_queue = zeros(1,length(stoplights));
 %stoplights(1,:) contains location of each SL
 %stoplights(2,:) contains offset time of each SL
 %stoplights(3,:) contains length of green light in mins
@@ -26,7 +41,7 @@ stoplights = [0 33 67; 0 0 0.5; 1 2 2; 0 1 1; 0 0 0; 0.1 0.05 0.05; 0 0 0; 0 0 0
 %stoplights(5,:) contains state of light (0 for green, 1 for red)
 %stoplights(6,:) contains new car parameter
 %stoplights(7,:) contains cars in queue
-%stoplights(7,:) contains time steps unchanged
+%stoplights(8,:) contains time steps unchanged
 
 %Define Matrix for Driver Data
 driver_data = [];
@@ -38,9 +53,9 @@ driver_data = [];
 %driver_data(6,:) contains queue position (0 is on road)
 %driver_data(7,:) contains exit destination (0-Washtenaw, 1-Arborland, num_lanes-US23)
 
-lambda_dist = normpdf(((1:end_time) - (end_time/2)) / end_time, 0, 1);
+lambda_dist = normpdf(((1:end_time) - (end_time/2)) / end_time, 0, 1/3.5);
 
-tic
+
 for t = 1:end_time
     stoplights = SL_update(stoplights,t,dt);
     %stoplights = SL_update_sensor(stoplights, street);
@@ -60,12 +75,12 @@ for t = 1:end_time
             % exit location
             exit_loc = 0;
             seed = rand();
-            if seed < .2
+            if seed < prob_straight % 5/8
                 exit_loc = 0;
-            elseif seed < 0.6
+            elseif seed < prob_straight + prob_left % 1/8
                 exit_loc = 1;
             else
-                exit_loc = num_lanes;
+                exit_loc = num_lanes; % 2/8
             end
             
             %   make new car in car vec with light's dist, queue pos, and lane 0 
@@ -181,7 +196,7 @@ for t = 1:end_time
             % not at light, spot in front is empty
             elseif street(ii,jj+1) == 0
                 % if close to exit and in wrong lane try to switch lanes 
-                if (jj > 0.9*size(street, 2)) && (ii ~= driver_data(7, kk)) && (driver_data(7, kk) ~= 0)
+                if (jj > n-spots_must_switch) && (ii ~= driver_data(7, kk)) && (driver_data(7, kk) ~= 0)
                     if ii == 1 %if in left lane
                         assert(driver_data(7, kk) == m);
                         if street(ii+1,jj) == 0 && street(ii+1,jj+1) == 0 && G1(ii+1,jj+1) == 0
@@ -291,7 +306,7 @@ for t = 1:end_time
             else
                 if m > 1
                     if ii == 1 %if in left lane
-                        if jj < .75*size(street, 2) || driver_data(7,kk) == m
+                        if jj < n-spots_try_switch || driver_data(7,kk) == m
                             if street(ii+1,jj) == 0 && street(ii+1,jj+1) == 0 && G1(ii+1,jj+1) == 0
                                 assert(G1(ii+1,jj+1) == 0);
                                 G1(ii+1,jj+1) = 1;
@@ -309,7 +324,7 @@ for t = 1:end_time
                             driver_data(4,kk) = t;
                         end
                     elseif ii == m %if in right lane
-                        if jj < .75*size(street, 2) || driver_data(7,kk) == 1
+                        if jj < n-spots_try_switch || driver_data(7,kk) == 1
                             if street(ii-1,jj) == 0 && street(ii-1,jj+1) == 0 && G1(ii-1,jj+1) == 0
                                 assert(G1(ii-1,jj+1) == 0);
                                 G1(ii-1,jj+1) = 1;
@@ -328,13 +343,13 @@ for t = 1:end_time
                             driver_data(4,kk) = t;                            
                         end
                     else   %if lanes on either side
-                        if street(ii+1,jj) == 0 && street(ii+1,jj+1) == 0 && G1(ii+1,jj+1) == 0 && (jj < .75*size(street, 2) || driver_data(7,kk) ~= 1)
+                        if street(ii+1,jj) == 0 && street(ii+1,jj+1) == 0 && G1(ii+1,jj+1) == 0 && (jj < n-spots_try_switch || driver_data(7,kk) ~= 1)
                             assert(G1(ii+1,jj+1) == 0);
                             G1(ii+1,jj+1) = 1;
                             driver_data(1,kk) = ii+1;
                             driver_data(2,kk) = jj+1;
                             driver_data(4,kk) = t;
-                        elseif street(ii-1,jj) == 0 && street(ii-1,jj+1) == 0 && G1(ii-1,jj+1) == 0 && (jj < .75*size(street, 2) || driver_data(7,kk) ~= m)
+                        elseif street(ii-1,jj) == 0 && street(ii-1,jj+1) == 0 && G1(ii-1,jj+1) == 0 && (jj < n-spots_try_switch || driver_data(7,kk) ~= m)
                             assert(G1(ii-1,jj+1) == 0);
                             G1(ii-1,jj+1) = 1;
                             assert(ii-1 > 0);
@@ -362,9 +377,6 @@ for t = 1:end_time
             driver_data(2,kk) = jj+1;
             driver_data(4,kk) = t;
         end
-        if jj > 97 && driver_data(7,kk) ~= 0 && driver_data(7,kk) ~= ii
-            disp('fuck');
-        end
     end
     
     for kk = car_vec
@@ -382,7 +394,7 @@ for t = 1:end_time
         dest = driver_data(7,kk);
         
         % if near end and not in dest lane
-        if (jj > 0.9*size(street,2)) && (dest ~= 0) && (dest ~= ii)
+        if (jj > n-spots_must_switch) && (dest ~= 0) && (dest ~= ii)
             if street(ii,jj) == 0
                 continue;
             end
@@ -455,10 +467,15 @@ for t = 1:end_time
 %         end
 %     end
     street = G1;
+    for ii = 1:length(stoplights)
+        if(stoplights(7,ii) > 20)
+            long_queue(1,ii) = long_queue(1,ii) + 1*dt/60;
+        end
+    end
+    
     
 end
-toc
-disp(size(driver_data));
+
 %collect travel time data
 for jj = 1:size(driver_data, 2)
     drive_time = (driver_data(4,jj) - driver_data(3,jj))*dt;
@@ -474,6 +491,8 @@ hist(speed_vec);
 title('Average Speed of Cars');
 xlabel('Average Speed (mph)');
 ylabel('Number of Cars');
+toc
+
 
 %{
 Still to be done:
