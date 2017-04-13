@@ -14,11 +14,11 @@ end_time = ceil(1/dt*60*num_mins); %how many time steps simulation will run for
 speed_vec = []; %vector of travel speeds for cars
 
 %Define Grid for Street
-street_length = 100;
+street_length = 1250;
 street = zeros(num_lanes,street_length);
 
 %Define Locations of Stoplights
-stoplights = [0 33 67; 0 0 0.5; 1 2 2; 0 1 1; 0 0 0; 0.1 0.05 0.05; 0 0 0; 0 0 0];
+stoplights = [0 70 140 175 210 315 490 525 735 770 910 980 1015; 0 0 0 0 0 0 0 0 0 0 0 0 0; 1 2 2 2 2 2 2 2 2 2 2 2 2; 0 1 1 1 1 1 1 1 1 1 1 1 1; 0 0 0 0 0 0 0 0 0 0 0 0 0; 0.1 0.05 0.05 0.1 0.1 0.1 0.1 0.1 0.1 0.1 0.1 0.1 0.1; 0 0 0 0 0 0 0 0 0 0 0 0 0; 0 0 0 0 0 0 0 0 0 0 0 0 0];
 %stoplights(1,:) contains location of each SL
 %stoplights(2,:) contains offset time of each SL
 %stoplights(3,:) contains length of green light in mins
@@ -266,7 +266,7 @@ for t = 1:end_time
     street = G1;
     
 end
-disp(size(driver_data));
+%disp(size(driver_data));
 %collect travel time data
 for jj = 1:size(driver_data, 2)
     drive_time = (driver_data(4,jj) - driver_data(3,jj))*dt;
