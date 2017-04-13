@@ -3,7 +3,7 @@ clear all
 speed_limit = 45;
 p = 0.1; % probability of car entering road after timestep dt
 num_mins = 30;
-num_lanes = 2;
+num_lanes = 3;
 
 %Define vector of cars on street
 car_vec = [];
@@ -36,14 +36,14 @@ driver_data = [];
 %driver_data(4,:) contains exit time of each car
 %driver_data(5,:) contains entry distance of each car
 %driver_data(6,:) contains queue position (0 is on road)
-%driver_data(7,:) contains exit destination (0-Washtenaw, 1-Arborland, 2-US23)
+%driver_data(7,:) contains exit destination (0-Washtenaw, 1-Arborland, num_lanes-US23)
 
 lambda_dist = normpdf(((1:end_time) - (end_time/2)) / end_time, 0, 1);
 
 
 for t = 1:end_time
-    %stoplights = SL_update(stoplights,t,dt);
-    stoplights = SL_update_sensor(stoplights, street);
+    stoplights = SL_update(stoplights,t,dt);
+    %stoplights = SL_update_sensor(stoplights, street);
     
     % run through queues generating new cars
     for entry = 1:size(stoplights,2)
@@ -65,7 +65,7 @@ for t = 1:end_time
             elseif seed < 0.6
                 exit_loc = 1;
             else
-                exit_loc = 2;
+                exit_loc = num_lanes;
             end
             
             %   make new car in car vec with light's dist, queue pos, and lane 0 
@@ -86,12 +86,18 @@ for t = 1:end_time
     for kk = car_vec
         ii = driver_data(1,kk);
         jj = driver_data(2,kk);
+        
+        
         if jj < n
+            if driver_data(6,kk) == 0 
+                assert(street(ii,jj) == 1);
+            end
+        
             % if approaching a light
             if any(jj==stoplights(1,:))
               ss = find(jj==stoplights(1,:));
               
-              % driver on road
+              % driver on road at light
               if ii > 0
                   assert(driver_data(6, kk) == 0);
                   
@@ -115,7 +121,7 @@ for t = 1:end_time
                           driver_data(4,kk) = t;
                       end
                   end
-              % driver in queue
+              % driver in queue (at light)
               elseif ii == 0
                   assert(driver_data(6, kk) > 0);
                   
@@ -172,11 +178,12 @@ for t = 1:end_time
                       driver_data(4, kk) = t;
                   end
               end
+            % not at light, spot in front is empty
             elseif street(ii,jj+1) == 0
-                % if close to exit try to switch lanes 
+                % if close to exit and in wrong lane try to switch lanes 
                 if (jj > 0.9*size(street, 2)) && (ii ~= driver_data(7, kk)) && (driver_data(7, kk) ~= 0)
                     if ii == 1 %if in left lane
-                        assert(driver_data(7, kk) == 2);
+                        assert(driver_data(7, kk) == m);
                         if street(ii+1,jj) == 0 && street(ii+1,jj+1) == 0
                             G1(ii+1,jj+1) = 1;
                             driver_data(1,kk) = ii+1;
@@ -198,11 +205,28 @@ for t = 1:end_time
                             G1(ii,jj) = 1;
                             driver_data(4,kk) = t;
                         end
+                    else %middle lane
+                        ii_up = 0;
+                        if (ii < driver_data(7, kk))
+                            ii_up = ii + 1;
+                        else
+                            ii_up = ii - 1;
+                        end 
+                        
+                        if street(ii_up,jj) == 0 && street(ii_up,jj+1) == 0
+                            G1(ii_up,jj+1) = 1;
+                            driver_data(1,kk) = ii_up;
+                            driver_data(2,kk) = jj+1;
+                            driver_data(4,kk) = t;
+                        else
+                            G1(ii,jj) = 1;
+                            driver_data(4,kk) = t;
+                        end
                     end
-                % if far down road try to switch lanes before going forward
-                elseif (jj > 0.9*size(street, 2)) && (ii ~= driver_data(7, kk)) && (driver_data(7, kk) ~= 0)
+                % if far down road in long lane try to switch lanes before going forward
+                elseif (jj > 0.7*size(street, 2)) && (ii ~= driver_data(7, kk)) && (driver_data(7, kk) ~= 0)
                     if ii == 1 %if in left lane
-                        assert(driver_data(7, kk) == 2);
+                        assert(driver_data(7, kk) == m);
                         if street(ii+1,jj) == 0 && street(ii+1,jj+1) == 0
                             G1(ii+1,jj+1) = 1;
                             driver_data(1,kk) = ii+1;
@@ -226,16 +250,35 @@ for t = 1:end_time
                             driver_data(2,kk) = jj+1;
                             driver_data(4,kk) = t;
                         end
+                    else %middle lane
+                        ii_up = 0;
+                        if (ii < driver_data(7, kk))
+                            ii_up = ii + 1;
+                        else
+                            ii_up = ii - 1;
+                        end 
+                        
+                        if street(ii_up,jj) == 0 && street(ii_up,jj+1) == 0
+                            G1(ii_up,jj+1) = 1;
+                            driver_data(1,kk) = ii_up;
+                            driver_data(2,kk) = jj+1;
+                            driver_data(4,kk) = t;
+                        else
+                            G1(ii,jj+1) = 1;
+                            driver_data(2,kk) = jj+1;
+                            driver_data(4,kk) = t;
+                        end
                     end
                 else
                     G1(ii,jj+1) = 1;
                     driver_data(2,kk) = jj+1;
                     driver_data(4,kk) = t;
                 end
+            % not at light, car blocking forward path
             else
                 if m > 1
                     if ii == 1 %if in left lane
-                        if jj < .75*size(street, 2) || driver_data(7,kk) == 2
+                        if jj < .75*size(street, 2) || driver_data(7,kk) == m
                             if street(ii+1,jj) == 0 && street(ii+1,jj+1) == 0
                                 G1(ii+1,jj+1) = 1;
                                 driver_data(1,kk) = ii+1;
@@ -266,12 +309,12 @@ for t = 1:end_time
                             driver_data(4,kk) = t;                            
                         end
                     else   %if lanes on either side
-                        if street(ii+1,jj) == 0 && street(ii+1,jj+1) == 0
+                        if street(ii+1,jj) == 0 && street(ii+1,jj+1) == 0 && (jj < .75*size(street, 2) || driver_data(7,kk) ~= 1)
                             G1(ii+1,jj+1) = 1;
                             driver_data(1,kk) = ii+1;
                             driver_data(2,kk) = jj+1;
                             driver_data(4,kk) = t;
-                        elseif street(ii-1,jj) == 0 && street(ii-1,jj+1) == 0
+                        elseif street(ii-1,jj) == 0 && street(ii-1,jj+1) == 0 && (jj < .75*size(street, 2) || driver_data(7,kk) ~= m)
                             G1(ii-1,jj+1) = 1;
                             assert(ii-1 > 0);
                             driver_data(1,kk) = ii-1;
@@ -296,6 +339,18 @@ for t = 1:end_time
             driver_data(2,kk) = jj+1;
             driver_data(4,kk) = t;
         end
+        if jj > 97 && driver_data(7,kk) ~= 0 && driver_data(7,kk) ~= ii
+            disp('fuck');
+        end
+    end
+    
+    for kk = car_vec
+        ii = driver_data(1,kk);
+        jj = driver_data(2,kk);
+        
+        if driver_data(6,kk) == 0
+            assert(jj == n+1 || G1(ii, jj) == 1);
+        end
     end
     
     for kk = car_vec
@@ -312,17 +367,17 @@ for t = 1:end_time
             assert(street(ii,jj) == 1);
             assert(G1(ii,jj) == 1);
             
-            if (ii == 1) && (G1(2, jj+1) == 0)
-                assert(dest == 2);
-                G1(2,jj+1) = 1;
-                G1(1,jj) = 0;
-                driver_data(1,kk) = 2;
+            if (ii < dest) && (street(ii+1, jj) == 1) && (G1(ii+1, jj+1) == 0)
+                assert(dest == m);
+                G1(ii+1,jj+1) = 1;
+                G1(ii,jj) = 0;
+                driver_data(1,kk) = ii+1;
                 driver_data(2,kk) = jj+1;
-            elseif (ii == 2) && (G1(1, jj+1) == 0)
+            elseif (ii > dest) && (street(ii-1, jj) == 1) && (G1(ii-1, jj+1) == 0)
                 assert(dest == 1);
-                G1(1,jj+1) = 1;
-                G1(2,jj) = 0;
-                driver_data(1,kk) = 1;
+                G1(ii-1,jj+1) = 1;
+                G1(ii,jj) = 0;
+                driver_data(1,kk) = ii-1;
                 driver_data(2,kk) = jj+1;                
             end
         end

@@ -5,7 +5,6 @@ SL_new = stoplights;
 if size(street, 2) > 0
     for light = 2:size(SL_new,2)
         light_dist = SL_new(1, light);
-        disp(light_dist);
         queue_length = SL_new(7, light);
         status_time = SL_new(8, light);
         ready_change = status_time > 240;        
