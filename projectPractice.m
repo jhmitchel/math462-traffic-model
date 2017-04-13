@@ -1,8 +1,9 @@
 clear all
+tic
 %Define parameters for analysis
 speed_limit = 45;
 p = 0.1; % probability of car entering road after timestep dt
-num_mins = 30;
+num_mins = 240;
 num_lanes = 2;
 
 %Define vector of cars on street
@@ -18,7 +19,14 @@ street_length = 1250;
 street = zeros(num_lanes,street_length);
 
 %Define Locations of Stoplights
-stoplights = [0 70 140 175 210 315 490 525 735 770 910 980 1015; 0 0 0 0 0 0 0 0 0 0 0 0 0; 1 2 2 2 2 2 2 2 2 2 2 2 2; 0 1 1 1 1 1 1 1 1 1 1 1 1; 0 0 0 0 0 0 0 0 0 0 0 0 0; 0.1 0.05 0.05 0.1 0.1 0.1 0.1 0.1 0.1 0.1 0.1 0.1 0.1; 0 0 0 0 0 0 0 0 0 0 0 0 0; 0 0 0 0 0 0 0 0 0 0 0 0 0];
+stoplights = [0 70 140 175 210 315 490 525 735 770 910 980 1015 1040; 
+              0 0 0 0 0 0 0 0 0 0 0 0 0 0; 
+              1 2 2 2 2 2 2 2 2 2 2 2 2 2; 
+              0 1 1 1 1 1 1 1 1 1 1 1 1 1; 
+              0 0 0 0 0 0 0 0 0 0 0 0 0 0; 
+              0.1 0.0005 0.0005 0.0005 0.008 0.025 0.0005 0.0005 0.125 0.0005 0.0005 0.016 0.0005 0.0005; 
+              0 0 0 0 0 0 0 0 0 0 0 0 0 0];
+long_queue = zeros(1,length(stoplights));
 %stoplights(1,:) contains location of each SL
 %stoplights(2,:) contains offset time of each SL
 %stoplights(3,:) contains length of green light in mins
@@ -26,7 +34,7 @@ stoplights = [0 70 140 175 210 315 490 525 735 770 910 980 1015; 0 0 0 0 0 0 0 0
 %stoplights(5,:) contains state of light (0 for green, 1 for red)
 %stoplights(6,:) contains new car parameter
 %stoplights(7,:) contains cars in queue
-%stoplights(7,:) contains time steps unchanged
+%stoplights(8,:) contains time steps unchanged
 
 %Define Matrix for Driver Data
 driver_data = [];
@@ -37,8 +45,7 @@ driver_data = [];
 %driver_data(5,:) contains entry distance of each car
 %driver_data(6,:) contains queue position (0 is on road)
 
-lambda_dist = normpdf(((1:end_time) - (end_time/2)) / end_time, 0, 1);
-
+lambda_dist = normpdf(((1:end_time) - (end_time/2)) / end_time, 0, 1/3.5);
 
 for t = 1:end_time
     %stoplights = SL_update(stoplights,t,dt);
@@ -264,6 +271,12 @@ for t = 1:end_time
 %         end
 %     end
     street = G1;
+    for ii = 1:length(stoplights)
+        if(stoplights(7,ii) > 20)
+            long_queue(1,ii) = long_queue(1,ii) + 1*dt/60;
+        end
+    end
+    
     
 end
 %disp(size(driver_data));
@@ -282,6 +295,8 @@ hist(speed_vec);
 title('Average Speed of Cars');
 xlabel('Average Speed (mph)');
 ylabel('Number of Cars');
+toc
+
 
 %{
 Still to be done:
