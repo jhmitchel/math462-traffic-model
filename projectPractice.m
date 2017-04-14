@@ -478,6 +478,15 @@ for t = 1:end_time
     
 end
 
+time_speed1 = [];
+time_speed2 = [];
+time_speed3 = [];
+time_speed4 = [];
+time_speed5 = [];
+time_speed6 = [];
+time_speed7 = [];
+time_speed8 = [];
+
 %collect travel time data
 for jj = 1:size(driver_data, 2)
     drive_time = (driver_data(4,jj) - driver_data(3,jj))*dt;
@@ -485,7 +494,73 @@ for jj = 1:size(driver_data, 2)
     ave_speed = drive_dist/drive_time; %ft/sec
     ave_speed = ave_speed * 3600/5280; %convert to mph
     speed_vec = [speed_vec ave_speed];
+    if driver_data(3,jj) < end_time/8
+        time_speed1 = [time_speed1 ave_speed];
+    elseif driver_data(3,jj) < 2*end_time/8
+        time_speed2 = [time_speed2 ave_speed];
+    elseif driver_data(3,jj) < 3*end_time/8
+        time_speed3 = [time_speed3 ave_speed];
+    elseif driver_data(3,jj) < 4*end_time/8
+        time_speed4 = [time_speed4 ave_speed];
+    elseif driver_data(3,jj) < 5*end_time/8
+        time_speed5 = [time_speed5 ave_speed];
+    elseif driver_data(3,jj) < 6*end_time/8
+        time_speed6 = [time_speed6 ave_speed];
+    elseif driver_data(3,jj) < 7*end_time/8
+        time_speed7 = [time_speed7 ave_speed];
+    else
+        time_speed8 = [time_speed8 ave_speed];
+    end
 end
+
+disp('total stats');
+disp(quantile(speed_vec, [0 .25 .5 .75 1]));
+disp(mean(speed_vec));
+disp(std(speed_vec));
+
+disp('first 30 stats');
+disp(quantile(time_speed1, [0 .25 .5 .75 1]));
+disp(mean(time_speed1));
+disp(std(time_speed1));
+
+disp('30-60 stats');
+disp(quantile(time_speed2, [0 .25 .5 .75 1]));
+disp(mean(time_speed2));
+disp(std(time_speed2));
+
+disp('60-90 stats');
+disp(quantile(time_speed3, [0 .25 .5 .75 1]));
+disp(mean(time_speed3));
+disp(std(time_speed3));
+
+disp('90-120 stats');
+disp(quantile(time_speed4, [0 .25 .5 .75 1]));
+disp(mean(time_speed4));
+disp(std(time_speed4));
+
+disp('120-150 stats');
+disp(quantile(time_speed5, [0 .25 .5 .75 1]));
+disp(mean(time_speed5));
+disp(std(time_speed5));
+
+disp('150-180 stats');
+disp(quantile(time_speed6, [0 .25 .5 .75 1]));
+disp(mean(time_speed6));
+disp(std(time_speed6));
+
+disp('180-210 stats');
+disp(quantile(time_speed7, [0 .25 .5 .75 1]));
+disp(mean(time_speed7));
+disp(std(time_speed7));
+
+disp('210-240 stats');
+disp(quantile(time_speed8, [0 .25 .5 .75 1]));
+disp(mean(time_speed8));
+disp(std(time_speed8));
+
+disp(long_queue);
+
+
 
 %generate figure
 figure
