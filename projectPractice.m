@@ -98,14 +98,16 @@ for t = 1:end_time
     G1 = zeros(m,n);
     queue_exit = zeros(size(stoplights,2), 1);
     
+    
     for kk = car_vec
         ii = driver_data(1,kk);
         jj = driver_data(2,kk);
+        dest = driver_data(7,kk);
         
         
         if jj < n
             if driver_data(6,kk) == 0 
-                assert(street(ii,jj) == 1);
+                % assert(street(ii,jj) == 1);
             end
         
             % if approaching a light
@@ -114,46 +116,46 @@ for t = 1:end_time
               
               % driver on road at light
               if ii > 0
-                  assert(driver_data(6, kk) == 0);
+                  % assert(driver_data(6, kk) == 0);
                   
                   % red light
                   if stoplights(5,ss)==1
-                      assert(G1(ii,jj) == 0);
+                      % assert(G1(ii,jj) == 0);
                       G1(ii,jj) = 1;
                       driver_data(2,kk) = jj;
                       driver_data(4,kk) = t;
                   % green light and open
                   else
                       if street(ii, jj+1) == 0
-                          assert(G1(ii,jj+1) == 0);
+                          % assert(G1(ii,jj+1) == 0);
                           G1(ii,jj+1) = 1;
                           driver_data(2,kk) = jj+1;
                           driver_data(4,kk) = t;
                       else
                           % no switch lanes at light?
-                          assert(G1(ii,jj) == 0);
+                          % assert(G1(ii,jj) == 0);
                           G1(ii,jj) = 1;
                           driver_data(4,kk) = t;
                       end
                   end
               % driver in queue (at light)
               elseif ii == 0
-                  assert(driver_data(6, kk) > 0);
+                  % assert(driver_data(6, kk) > 0);
                   
                   % driver at front of queue
                   if (driver_data(6, kk) == 1) && (driver_data(3,kk) < t)
                       % initial entry point
                       if jj == 0
-                          assert(stoplights(5,1) == 0);
+                          % assert(stoplights(5,1) == 0);
                           
                           for lane = 1:m
                               if street(lane, 1) == 0
-                                  assert(G1(lane,1) == 0);
+                                  % assert(G1(lane,1) == 0);
                                   G1(lane, 1) = 1;
                                   driver_data(1,kk) = lane;
                                   driver_data(2,kk) = 1;
                                   driver_data(4,kk) = t;
-                                  assert(queue_exit(1) == 0);
+                                  % assert(queue_exit(1) == 0);
                                   queue_exit(1) = 1;
                                   break;
                               end
@@ -166,138 +168,138 @@ for t = 1:end_time
                           if stoplights(5, ss) == 1
                               % right lane empty
                               if street(m, jj+1) == 0
-                                  assert(G1(m,jj+1) == 0);
+                                  % assert(G1(m,jj+1) == 0);
                                   G1(m, jj+1) = 1;
                                   driver_data(1,kk) = m;
                                   driver_data(2,kk) = jj + 1;
                                   driver_data(4,kk) = t;
-                                  assert(queue_exit(ss) == 0);
+                                  % assert(queue_exit(ss) == 0);
                                   queue_exit(ss) = 1;                                  
                               end
                           % red light
                           else
                               % right lane and preceding spot empty
                               if street(m, jj) == 0 && street(m, jj+1) == 0
-                                  assert(G1(m,jj+1) == 0);
+                                  % assert(G1(m,jj+1) == 0);
                                   G1(m, jj+1) = 1;
                                   driver_data(1,kk) = m;
                                   driver_data(2,kk) = jj + 1;
                                   driver_data(4,kk) = t;
-                                  assert(queue_exit(ss) == 0);
+                                  % assert(queue_exit(ss) == 0);
                                   queue_exit(ss) = 1;                                  
                               end                              
                           end
                       end
                   else
-                      assert(driver_data(1, kk) == 0);
+                      % assert(driver_data(1, kk) == 0);
                       driver_data(4, kk) = t;
                   end
               end
             % not at light, spot in front is empty
             elseif street(ii,jj+1) == 0
                 % if close to exit and in wrong lane try to switch lanes 
-                if (jj > n-spots_must_switch) && (ii ~= driver_data(7, kk)) && (driver_data(7, kk) ~= 0)
+                if (jj > n-spots_must_switch) && (ii ~= dest) && (dest ~= 0)
                     if ii == 1 %if in left lane
-                        assert(driver_data(7, kk) == m);
+                        % assert(dest == m);
                         if street(ii+1,jj) == 0 && street(ii+1,jj+1) == 0 && G1(ii+1,jj+1) == 0
-                            assert(G1(ii+1,jj+1) == 0);
+                            % assert(G1(ii+1,jj+1) == 0);
                             G1(ii+1,jj+1) = 1;
                             driver_data(1,kk) = ii+1;
                             driver_data(2,kk) = jj+1;
                             driver_data(4,kk) = t;
                         else
-                            assert(G1(ii,jj) == 0);
+                            % assert(G1(ii,jj) == 0);
                             G1(ii,jj) = 1;
                             driver_data(4,kk) = t;
                         end
                     elseif ii == m %if in right lane
-                        assert(driver_data(7,kk) == 1);
+                        % assert(dest == 1);
                         if street(ii-1,jj) == 0 && street(ii-1,jj+1) == 0 && G1(ii-1,jj+1) == 0
-                            assert(G1(ii-1,jj+1) == 0);
+                            % assert(G1(ii-1,jj+1) == 0);
                             G1(ii-1,jj+1) = 1;
-                            assert(ii-1 > 0);
+                            % assert(ii-1 > 0);
                             driver_data(1,kk) = ii-1;
                             driver_data(2,kk) = jj+1;
                             driver_data(4,kk) = t;
                         else
-                            assert(G1(ii,jj) == 0);
+                            % assert(G1(ii,jj) == 0);
                             G1(ii,jj) = 1;
                             driver_data(4,kk) = t;
                         end
                     else %middle lane
                         ii_up = 0;
-                        if (ii < driver_data(7, kk))
+                        if (ii < dest)
                             ii_up = ii + 1;
                         else
                             ii_up = ii - 1;
                         end 
                         
                         if street(ii_up,jj) == 0 && street(ii_up,jj+1) == 0 && G1(ii_up,jj+1) == 0
-                            assert(G1(ii_up,jj+1) == 0);
+                            % assert(G1(ii_up,jj+1) == 0);
                             G1(ii_up,jj+1) = 1;
                             driver_data(1,kk) = ii_up;
                             driver_data(2,kk) = jj+1;
                             driver_data(4,kk) = t;
                         else
-                            assert(G1(ii,jj) == 0);
+                            % assert(G1(ii,jj) == 0);
                             G1(ii,jj) = 1;
                             driver_data(4,kk) = t;
                         end
                     end
                 % if far down road in long lane try to switch lanes before going forward
-                elseif (jj > 0.7*size(street, 2)) && (ii ~= driver_data(7, kk)) && (driver_data(7, kk) ~= 0)
+                elseif (jj > 0.7*size(street, 2)) && (ii ~= dest) && (dest ~= 0)
                     if ii == 1 %if in left lane
-                        assert(driver_data(7, kk) == m);
+                        % assert(dest == m);
                         if street(ii+1,jj) == 0 && street(ii+1,jj+1) == 0 && G1(ii+1,jj+1) == 0
-                            assert(G1(ii+1,jj+1) == 0);
+                            % assert(G1(ii+1,jj+1) == 0);
                             G1(ii+1,jj+1) = 1;
                             driver_data(1,kk) = ii+1;
                             driver_data(2,kk) = jj+1;
                             driver_data(4,kk) = t;
                         else
-                            assert(G1(ii,jj+1) == 0);
+                            % assert(G1(ii,jj+1) == 0);
                             G1(ii,jj+1) = 1;
                             driver_data(2,kk) = jj+1;
                             driver_data(4,kk) = t;
                         end
                     elseif ii == m %if in right lane
-                        assert(driver_data(7,kk) == 1);
+                        % assert(dest == 1);
                         if street(ii-1,jj) == 0 && street(ii-1,jj+1) == 0 && G1(ii-1,jj+1) == 0
-                            assert(G1(ii-1,jj+1) == 0);
+                            % assert(G1(ii-1,jj+1) == 0);
                             G1(ii-1,jj+1) = 1;
-                            assert(ii-1 > 0);
+                            % assert(ii-1 > 0);
                             driver_data(1,kk) = ii-1;
                             driver_data(2,kk) = jj+1;
                             driver_data(4,kk) = t;
                         else
-                            assert(G1(ii,jj+1) == 0);
+                            % assert(G1(ii,jj+1) == 0);
                             G1(ii,jj+1) = 1;
                             driver_data(2,kk) = jj+1;
                             driver_data(4,kk) = t;
                         end
                     else %middle lane
                         ii_up = 0;
-                        if (ii < driver_data(7, kk))
+                        if (ii < dest)
                             ii_up = ii + 1;
                         else
                             ii_up = ii - 1;
                         end 
                         
                         if street(ii_up,jj) == 0 && street(ii_up,jj+1) == 0 && G1(ii_up,jj+1) == 0
-                            assert(G1(ii_up,jj+1) == 0);
+                            % assert(G1(ii_up,jj+1) == 0);
                             G1(ii_up,jj+1) = 1;
                             driver_data(1,kk) = ii_up;
                             driver_data(2,kk) = jj+1;
                             driver_data(4,kk) = t;
                         else
-                            assert(G1(ii,jj+1) == 0);
+                            % assert(G1(ii,jj+1) == 0);
                             G1(ii,jj+1) = 1;
                             driver_data(2,kk) = jj+1;
                             driver_data(4,kk) = t;
                         end
                     end
                 else
-                    assert(G1(ii,jj+1) == 0);
+                    % assert(G1(ii,jj+1) == 0);
                     G1(ii,jj+1) = 1;
                     driver_data(2,kk) = jj+1;
                     driver_data(4,kk) = t;
@@ -306,72 +308,72 @@ for t = 1:end_time
             else
                 if m > 1
                     if ii == 1 %if in left lane
-                        if jj < n-spots_try_switch || driver_data(7,kk) == m
+                        if jj < n-spots_try_switch || dest == m
                             if street(ii+1,jj) == 0 && street(ii+1,jj+1) == 0 && G1(ii+1,jj+1) == 0
-                                assert(G1(ii+1,jj+1) == 0);
+                                % assert(G1(ii+1,jj+1) == 0);
                                 G1(ii+1,jj+1) = 1;
                                 driver_data(1,kk) = ii+1;
                                 driver_data(2,kk) = jj+1;
                                 driver_data(4,kk) = t;
                             else
-                                assert(G1(ii,jj) == 0);
+                                % assert(G1(ii,jj) == 0);
                                 G1(ii,jj) = 1;
                                 driver_data(4,kk) = t;
                             end
                         else
-                            assert(G1(ii,jj) == 0);
+                            % assert(G1(ii,jj) == 0);
                             G1(ii,jj) = 1;
                             driver_data(4,kk) = t;
                         end
                     elseif ii == m %if in right lane
-                        if jj < n-spots_try_switch || driver_data(7,kk) == 1
+                        if jj < n-spots_try_switch || dest == 1
                             if street(ii-1,jj) == 0 && street(ii-1,jj+1) == 0 && G1(ii-1,jj+1) == 0
-                                assert(G1(ii-1,jj+1) == 0);
+                                % assert(G1(ii-1,jj+1) == 0);
                                 G1(ii-1,jj+1) = 1;
-                                assert(ii-1 > 0);
+                                % assert(ii-1 > 0);
                                 driver_data(1,kk) = ii-1;
                                 driver_data(2,kk) = jj+1;
                                 driver_data(4,kk) = t;
                             else
-                                assert(G1(ii,jj) == 0);
+                                % assert(G1(ii,jj) == 0);
                                 G1(ii,jj) = 1;
                                 driver_data(4,kk) = t;
                             end
                         else
-                            assert(G1(ii,jj) == 0);
+                            % assert(G1(ii,jj) == 0);
                             G1(ii,jj) = 1;
                             driver_data(4,kk) = t;                            
                         end
                     else   %if lanes on either side
-                        if street(ii+1,jj) == 0 && street(ii+1,jj+1) == 0 && G1(ii+1,jj+1) == 0 && (jj < n-spots_try_switch || driver_data(7,kk) ~= 1)
-                            assert(G1(ii+1,jj+1) == 0);
+                        if street(ii+1,jj) == 0 && street(ii+1,jj+1) == 0 && G1(ii+1,jj+1) == 0 && (jj < n-spots_try_switch || dest ~= 1)
+                            % assert(G1(ii+1,jj+1) == 0);
                             G1(ii+1,jj+1) = 1;
                             driver_data(1,kk) = ii+1;
                             driver_data(2,kk) = jj+1;
                             driver_data(4,kk) = t;
-                        elseif street(ii-1,jj) == 0 && street(ii-1,jj+1) == 0 && G1(ii-1,jj+1) == 0 && (jj < n-spots_try_switch || driver_data(7,kk) ~= m)
-                            assert(G1(ii-1,jj+1) == 0);
+                        elseif street(ii-1,jj) == 0 && street(ii-1,jj+1) == 0 && G1(ii-1,jj+1) == 0 && (jj < n-spots_try_switch || dest ~= m)
+                            % assert(G1(ii-1,jj+1) == 0);
                             G1(ii-1,jj+1) = 1;
-                            assert(ii-1 > 0);
+                            % assert(ii-1 > 0);
                             driver_data(1,kk) = ii-1;
                             driver_data(2,kk) = jj+1;
                             driver_data(4,kk) = t;
                         else
-                            assert(G1(ii,jj) == 0);
+                            % assert(G1(ii,jj) == 0);
                             G1(ii,jj) = 1;
                             driver_data(4, kk) = t;
                         end
                     end
                 else
-                    assert(G1(ii,jj) == 0);
+                    % assert(G1(ii,jj) == 0);
                     G1(ii,jj) = 1;
                     driver_data(4,kk) = t;
                 end    
             end
         elseif jj == n
             % make sure the driver exited correctly
-            if driver_data(7,kk) ~= 0
-                assert(ii == driver_data(7,kk));
+            if dest ~= 0
+                % assert(ii == dest);
             end
             G1(ii,jj) = 0;
             driver_data(2,kk) = jj+1;
@@ -384,7 +386,7 @@ for t = 1:end_time
         jj = driver_data(2,kk);
         
         if driver_data(6,kk) == 0
-            assert(jj == n+1 || G1(ii, jj) == 1);
+            % assert(jj == n+1 || G1(ii, jj) == 1);
         end
     end
     
@@ -399,17 +401,17 @@ for t = 1:end_time
                 continue;
             end
             
-            assert(street(ii,jj) == 1);
-            assert(G1(ii,jj) == 1);
+            % assert(street(ii,jj) == 1);
+            % assert(G1(ii,jj) == 1);
             
             if (ii < dest) && (street(ii+1, jj) == 1) && (G1(ii+1, jj+1) == 0)
-                assert(dest == m);
+                % assert(dest == m);
                 G1(ii+1,jj+1) = 1;
                 G1(ii,jj) = 0;
                 driver_data(1,kk) = ii+1;
                 driver_data(2,kk) = jj+1;
             elseif (ii > dest) && (street(ii-1, jj) == 1) && (G1(ii-1, jj+1) == 0)
-                assert(dest == 1);
+                % assert(dest == 1);
                 G1(ii-1,jj+1) = 1;
                 G1(ii,jj) = 0;
                 driver_data(1,kk) = ii-1;
@@ -429,7 +431,7 @@ for t = 1:end_time
             if queue_exit(ss)
                 driver_data(6, kk) = driver_data(6, kk) - 1;
                 if (driver_data(6,kk) == 0)
-                    assert(driver_data(1,kk) > 0);
+                    % assert(driver_data(1,kk) > 0);
                 end
             end
         elseif driver_data(6 ,kk) > 1 && any(jj == stoplights(1,:))
@@ -437,13 +439,13 @@ for t = 1:end_time
             if queue_exit(ss)
                 driver_data(6, kk) = driver_data(6, kk) - 1;
                 if (driver_data(6,kk) == 0)
-                    assert(driver_data(1,kk) > 0);
+                    % assert(driver_data(1,kk) > 0);
                 end
             end
         elseif driver_data(6,kk) == 0
             ii = driver_data(1, kk);
-            assert(ii > 0);
-            assert(jj == n+1 || G1(ii, jj) == 1);
+            % assert(ii > 0);
+            % assert(jj == n+1 || G1(ii, jj) == 1);
         end
     end
     
