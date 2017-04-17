@@ -53,7 +53,7 @@ driver_data = [];
 %driver_data(6,:) contains queue position (0 is on road)
 %driver_data(7,:) contains exit destination (0-Washtenaw, 1-Arborland, num_lanes-US23)
 
-lambda_dist = normpdf(((1:end_time) - (end_time/2)) / end_time, 0, 1/3.5);
+lambda_dist = 1.75*normpdf(((1:end_time) - (end_time/2)) / end_time, 0, 1/3.5);
 
 
 for t = 1:end_time
@@ -565,7 +565,7 @@ disp(long_queue);
 %generate figure
 figure
 hist(speed_vec);
-title('Average Speed of Cars');
+title(['Average Speed of Cars (avaerage = ', num2str(mean(speed_vec)), ')']);
 xlabel('Average Speed (mph)');
 ylabel('Number of Cars');
 toc
