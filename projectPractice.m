@@ -32,6 +32,7 @@ stoplights = [0 70 140 175 210 315 490 525 735 770 910 980 1015 1040;
               0 1 1 1 1 1 1 1 1 1 1 1 1 1; 
               0 0 0 0 0 0 0 0 0 0 0 0 0 0; 
               0.1 0.0005 0.0005 0.0005 0.008 0.025 0.0005 0.0005 0.125 0.0005 0.0005 0.016 0.0005 0.0005; 
+              0 0 0 0 0 0 0 0 0 0 0 0 0 0;
               0 0 0 0 0 0 0 0 0 0 0 0 0 0];
 long_queue = zeros(1,length(stoplights));
 %stoplights(1,:) contains location of each SL
@@ -57,39 +58,41 @@ lambda_dist = 1.75*normpdf(((1:end_time) - (end_time/2)) / end_time, 0, 1/3.5);
 
 
 for t = 1:end_time
-    stoplights = SL_update(stoplights,t,dt);
+    stoplights = SL_update(stoplights,t, dt);
     %stoplights = SL_update_sensor(stoplights, street);
     
     % run through queues generating new cars
-    for entry = 1:size(stoplights,2)
-        %   decide if new car
-        light_popularity = stoplights(6, entry);
-        num_cars = poissrnd(light_popularity * lambda_dist(t));
-    
-        while num_cars > 0
-            %   increment size queue
-            queue_size = stoplights(7,entry) + 1;
-            stoplights(7,entry) = queue_size;
-            light_dist = stoplights(1,entry);
-            
-            % exit location
-            exit_loc = 0;
-            seed = rand();
-            if seed < prob_straight % 5/8
+    if t ~= end_time
+        for entry = 1:size(stoplights,2)
+            %   decide if new car
+            light_popularity = stoplights(6, entry);
+            num_cars = poissrnd(light_popularity * lambda_dist(t));
+
+            while num_cars > 0
+                %   increment size queue
+                queue_size = stoplights(7,entry) + 1;
+                stoplights(7,entry) = queue_size;
+                light_dist = stoplights(1,entry);
+
+                % exit location
                 exit_loc = 0;
-            elseif seed < prob_straight + prob_left % 1/8
-                exit_loc = 1;
-            else
-                exit_loc = num_lanes; % 2/8
+                seed = rand();
+                if seed < prob_straight % 5/8
+                    exit_loc = 0;
+                elseif seed < prob_straight + prob_left % 1/8
+                    exit_loc = 1;
+                else
+                    exit_loc = num_lanes; % 2/8
+                end
+
+                %   make new car in car vec with light's dist, queue pos, and lane 0 
+                ind = ind+1; 
+                car_vec = [car_vec ind];
+                car_data = [ 0; light_dist; t; t; light_dist; queue_size; exit_loc ]; 
+                driver_data = [driver_data car_data];
+
+                num_cars = num_cars - 1;            
             end
-            
-            %   make new car in car vec with light's dist, queue pos, and lane 0 
-            ind = ind+1; 
-            car_vec = [car_vec ind];
-            car_data = [ 0; light_dist; t; t; light_dist; queue_size; exit_loc ]; 
-            driver_data = [driver_data car_data];
-            
-            num_cars = num_cars - 1;            
         end
     end
     
@@ -494,22 +497,12 @@ for jj = 1:size(driver_data, 2)
     ave_speed = drive_dist/drive_time; %ft/sec
     ave_speed = ave_speed * 3600/5280; %convert to mph
     speed_vec = [speed_vec ave_speed];
-    if driver_data(3,jj) < end_time/8
+    if driver_data(3,jj) < end_time/3
         time_speed1 = [time_speed1 ave_speed];
-    elseif driver_data(3,jj) < 2*end_time/8
+    elseif driver_data(3,jj) < 2*end_time/3
         time_speed2 = [time_speed2 ave_speed];
-    elseif driver_data(3,jj) < 3*end_time/8
-        time_speed3 = [time_speed3 ave_speed];
-    elseif driver_data(3,jj) < 4*end_time/8
-        time_speed4 = [time_speed4 ave_speed];
-    elseif driver_data(3,jj) < 5*end_time/8
-        time_speed5 = [time_speed5 ave_speed];
-    elseif driver_data(3,jj) < 6*end_time/8
-        time_speed6 = [time_speed6 ave_speed];
-    elseif driver_data(3,jj) < 7*end_time/8
-        time_speed7 = [time_speed7 ave_speed];
     else
-        time_speed8 = [time_speed8 ave_speed];
+        time_speed3 = [time_speed3 ave_speed];
     end
 end
 
@@ -518,46 +511,35 @@ disp(quantile(speed_vec, [0 .25 .5 .75 1]));
 disp(mean(speed_vec));
 disp(std(speed_vec));
 
-disp('first 30 stats');
+disp('initial third stats');
 disp(quantile(time_speed1, [0 .25 .5 .75 1]));
 disp(mean(time_speed1));
 disp(std(time_speed1));
+figure
+hist(time_speed1);
+title(['Average Speed of Early Cars (average = ', num2str(mean(time_speed1)), ')']);
+xlabel('Average Speed (mph)');
+ylabel('Number of Cars');
 
-disp('30-60 stats');
+disp('middle third stats');
 disp(quantile(time_speed2, [0 .25 .5 .75 1]));
 disp(mean(time_speed2));
 disp(std(time_speed2));
+figure
+hist(time_speed2);
+title(['Average Speed of Peak Hour Cars (average = ', num2str(mean(time_speed2)), ')']);
+xlabel('Average Speed (mph)');
+ylabel('Number of Cars');
 
-disp('60-90 stats');
+disp('final third stats');
 disp(quantile(time_speed3, [0 .25 .5 .75 1]));
 disp(mean(time_speed3));
 disp(std(time_speed3));
-
-disp('90-120 stats');
-disp(quantile(time_speed4, [0 .25 .5 .75 1]));
-disp(mean(time_speed4));
-disp(std(time_speed4));
-
-disp('120-150 stats');
-disp(quantile(time_speed5, [0 .25 .5 .75 1]));
-disp(mean(time_speed5));
-disp(std(time_speed5));
-
-disp('150-180 stats');
-disp(quantile(time_speed6, [0 .25 .5 .75 1]));
-disp(mean(time_speed6));
-disp(std(time_speed6));
-
-disp('180-210 stats');
-disp(quantile(time_speed7, [0 .25 .5 .75 1]));
-disp(mean(time_speed7));
-disp(std(time_speed7));
-
-disp('210-240 stats');
-disp(quantile(time_speed8, [0 .25 .5 .75 1]));
-disp(mean(time_speed8));
-disp(std(time_speed8));
-
+figure
+hist(time_speed3);
+title(['Average Speed of Late Cars (average = ', num2str(mean(time_speed3)), ')']);
+xlabel('Average Speed (mph)');
+ylabel('Number of Cars');
 disp(long_queue);
 
 
@@ -565,7 +547,7 @@ disp(long_queue);
 %generate figure
 figure
 hist(speed_vec);
-title(['Average Speed of Cars (avaerage = ', num2str(mean(speed_vec)), ')']);
+title(['Average Speed of Cars (average = ', num2str(mean(speed_vec)), ')']);
 xlabel('Average Speed (mph)');
 ylabel('Number of Cars');
 toc
